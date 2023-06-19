@@ -1,0 +1,127 @@
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >=0.8.2 <0.9.0;
+
+import "./ownable.sol";
+
+contract GameFactory is Ownable {
+    struct Game {
+        uint256 id;
+        bool isLimitedTickets;
+        uint256 maxTickets;
+        uint256 startTime;
+        uint256 endTime;
+        uint256 drawTime;
+        uint256 ticketPrice;
+    }
+
+    Game[] public games;
+
+    // Funkcia na vytvorenie novej hry
+    function createGame(
+        bool _isLimitedTickets,
+        uint256 _maxTickets,
+        uint256 _startYear,
+        uint256 _startMonth,
+        uint256 _startDay,
+        uint256 _endYear,
+        uint256 _endMonth,
+        uint256 _endDay,
+        uint256 _drawYear,
+        uint256 _drawMonth,
+        uint256 _drawDay,
+        uint256 _ticketPrice
+    ) public onlyOwner {
+        uint256 startTime = getDateTimestamp(
+            _startYear,
+            _startMonth,
+            _startDay
+        );
+        uint256 endTime = getDateTimestamp(_endYear, _endMonth, _endDay);
+        uint256 drawTime = getDateTimestamp(_drawYear, _drawMonth, _drawDay);
+
+        require(startTime > block.timestamp, "Invalid start time.");
+        require(endTime > startTime, "Invalid end time.");
+        require(drawTime > endTime, "Invalid draw time.");
+
+        uint256 newGameId = games.length + 1;
+        Game memory newGame;
+
+        if (_isLimitedTickets) {
+            require(
+                _maxTickets > 0,
+                "Maximum tickets must be greater than zero."
+            );
+            newGame = Game(
+                newGameId,
+                _isLimitedTickets,
+                _maxTickets,
+                startTime,
+                endTime,
+                drawTime,
+                _ticketPrice
+            );
+        } else {
+            newGame = Game(
+                newGameId,
+                _isLimitedTickets,
+                0,
+                startTime,
+                endTime,
+                drawTime,
+                _ticketPrice
+            );
+        }
+
+        games.push(newGame);
+    }
+
+    // Funkcia na prevod dátumu na časovú značku
+    function getDateTimestamp(
+        uint256 year,
+        uint256 month,
+        uint256 day
+    ) internal pure returns (uint256) {
+        require(year >= 1970, "Invalid year.");
+        require(month >= 1 && month <= 12, "Invalid month.");
+        require(day >= 1 && day <= 31, "Invalid day.");
+
+        return
+            (year - 1970) *
+            365 days +
+            (year - 1969) /
+            4 days +
+            (year % 4 == 0 && (month == 1 || month == 2) ? 1 days : 0 days) +
+            (month - 1) *
+            30 days +
+            (month > 2 ? ((153 * (month - 3) + 2) / 5) * 1 days : 0 days) +
+            (day - 1) *
+            1 days;
+    }
+
+    // Funkcia na získanie počtu vytvorených hier
+    function getNumberOfGames() public view onlyOwner returns (uint256) {
+        return games.length;
+    }
+
+    // Funkcia na získanie informácií o hre na základe jej indexu v poli
+    function getGame(
+        uint256 index
+    )
+        public
+        view
+        onlyOwner
+        returns (uint256, bool, uint256, uint256, uint256, uint256, uint256)
+    {
+        require(index < games.length, "Invalid game index.");
+        return (
+            games[index].id,
+            games[index].isLimitedTickets,
+            games[index].maxTickets,
+            games[index].startTime,
+            games[index].endTime,
+            games[index].drawTime,
+            games[index].ticketPrice
+        );
+    }
+}
