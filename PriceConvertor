@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >=0.8.2 <0.9.0;
+
+import "https://github.com/smartcontractkit/chainlink/blob/29f8561dea84f55f197999855723bbd435c883b4/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
+contract PriceConvertor {
+
+    function getPrice() public view returns (uint256) {
+        // ADDRESS 0x694AA1769357215DE4FAC081bf1f309aDC325306 - Sepolia Testnet
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+        (,int256 answer,,,) = priceFeed.latestRoundData();
+        // ETH - USD
+        return uint256(answer * 1e10);
+    }
+
+    function getVersion() public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+        return priceFeed.version();
+    }
+
+    function getConversionRate(uint256 ethAmount) public view returns (uint256) {
+        uint256 ethPrice = getPrice();
+        uint256 ethAmountInUSD = (ethPrice * ethAmount) / 1e18;
+        return ethAmountInUSD;
+    }
+
+}
