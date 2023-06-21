@@ -7,6 +7,7 @@ import "https://github.com/smartcontractkit/chainlink/blob/29f8561dea84f55f19799
 contract PriceConvertor {
 
     function getPrice() internal view returns (uint256) {
+        // ABI
         // ADDRESS 0x694AA1769357215DE4FAC081bf1f309aDC325306 - Sepolia Testnet
         AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
         (,int256 answer,,,) = priceFeed.latestRoundData();
@@ -24,4 +25,11 @@ contract PriceConvertor {
         uint256 ethAmountInUSD = (ethPrice * ethAmount) / 1e18;
         return ethAmountInUSD;
     }
+
+    // Function to convert USD amount to ETH
+    function getEthAmount(uint256 USDAmount) internal view returns (uint256) {
+        uint256 ethAmount = (USDAmount * 1e18 ) / getConversionRate(1) ;
+        return ethAmount;
+    }
+
 }
