@@ -26,7 +26,7 @@ contract GameFactory is Ownable, PriceConvertor {
     uint private gameCount;
     uint private ticketCount;
 
-    // Function to create a new game
+    // Create a new game
     function createGame(bool _isLimitedTickets, uint _maxTickets, uint _ticketPrice) public onlyOwner {
         gameCount++;
         Game storage newGame = games[gameCount];
@@ -40,7 +40,7 @@ contract GameFactory is Ownable, PriceConvertor {
         newGame.ticketPrice = _ticketPrice;
         
     }
-    // Function to buy a ticket
+    // Buy a ticket
     function buyTicket(uint gameId) public payable {
         ticketCount++;
         require(gameId > 0 && gameId <= gameCount, "Invalid game index.") ;
@@ -58,12 +58,18 @@ contract GameFactory is Ownable, PriceConvertor {
         
     }
 
-    // Function to get the number of created games
+    // Send funds to address
+    function withdrawFunds(address payable recipient, uint amount) public onlyOwner {
+        require(address(this).balance >= amount, "Insufficient contract balance");
+        recipient.transfer(amount);
+    }
+
+    // Get the number of created games
     function getNumberOfGames() public view onlyOwner returns (uint) {
         return gameCount;
     }
 
-    // Function to get game information based on its index in the array
+    // Get game information based on its index in the array
     function getGame(uint gameId) public view onlyOwner returns (bool, uint, uint, bool) {
         require(gameId > 0 && gameId <= gameCount, "Invalid game index");
     
@@ -77,7 +83,7 @@ contract GameFactory is Ownable, PriceConvertor {
         return (isLimitedTickets, maxTickets, ticketPrice, active);
     }
 
-    // Function to get ticket information based on game and its index
+    // Get ticket information based on game and its index
     function getTicket(uint gameId, uint ticketId) public view returns (uint, uint, address) {
         require(gameId > 0 && gameId <= gameCount, "Invalid game index");
         require(ticketId > 0 && ticketId <= games[gameId].ticketPool.length, "Invalid ticket index");
