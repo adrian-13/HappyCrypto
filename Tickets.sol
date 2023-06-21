@@ -3,54 +3,90 @@
 pragma solidity >=0.8.2 <0.9.0;
 
 import "./ownable.sol";
-import "./GameFactory.sol";
+import "./PriceConvertor.sol";
 
-contract Tickets is Ownable, GameFactory {
-    // udalosť je emitovaná pri zakúpení lístka
-    event TicketPurchased(
-        uint256 indexed ticketId,
-        address indexed owner,
-        uint256 value
-    );
+contract GameFactory is Ownable, PriceConvertor {
 
     struct Ticket {
-        uint256 ticketId; // Jedinečný identifikátor lístka
-        address owner; // Adresa vlastníka lístka
-        uint256 value; // Hodnota zakúpeného lístka
+        uint ticketId;
+        uint value;
+        address owner;
     }
 
-    Ticket[] private ticketPool;
-    uint256 private ticketCounter;
-
-    constructor() {
-        ticketCounter = 1; // Začiatočná hodnota inkrementálneho čítača
+    struct Game {
+        uint id;
+        bool isLimitedTickets;
+        uint maxTickets;
+        uint ticketPrice;
+        bool active;
+        Ticket[] ticketPool;
     }
 
-    // Priradí nový lístok do poolu lístkov
-    function buyTicket() public payable {
-        require(msg.value > 0, "You need to send some ether to buy a ticket.");
+    mapping(uint => Game) private games;
+    uint private gameCount;
+    uint private ticketCount;
 
-        Ticket memory newTicket = Ticket(ticketCounter, msg.sender, msg.value);
-        ticketPool.push(newTicket);
+    // Function to create a new game
+    function createGame(bool _isLimitedTickets, uint _maxTickets, uint _ticketPrice) public onlyOwner {
+        gameCount++;
+        Game storage newGame = games[gameCount];
+        require(newGame.active = true, "Game is over!");
+        newGame.id = gameCount;
+        newGame.isLimitedTickets = _isLimitedTickets;
+        if (_isLimitedTickets == true) {
+            require(_maxTickets > 0, "Invalid number of tickets.");
+            newGame.maxTickets = _maxTickets;
+        }
+        newGame.ticketPrice = _ticketPrice;
+        
+    }
+    // Function to buy a ticket
+    function buyTicket(uint gameId) public payable {
+        ticketCount++;
+        require(gameId > 0 && gameId <= gameCount, "Invalid game index.") ;
 
-        // umožňuje emitovať udalosť so správnymi parametrami počas vykonávania funkcie
-        emit TicketPurchased(ticketCounter, msg.sender, msg.value);
+        Game storage game = games[gameId];
 
-        ticketCounter++; // Inkrementujeme hodnotu inkrementálneho čítača pre ďalší lístok
+        require(game.active, "Game is not active");
+        require(!game.isLimitedTickets || game.ticketPool.length < game.maxTickets, "Maximum number of tickets reached");
+        require(msg.value >= getEthAmount(game.ticketPrice), "Didn't send enought!");
+
+        uint ticketId = game.ticketPool.length + 1;
+        Ticket memory newTicket = Ticket(ticketId, game.ticketPrice, msg.sender);
+        newTicket.ticketId = ticketCount;
+        game.ticketPool.push(newTicket);
+        
     }
 
-    // Funkcia, ktorá vráti celkový počet kúpených lístkov
-    function getNumberOfTickets() public view onlyOwner returns (uint) {
-        return ticketPool.length;
+    // Function to get the number of created games
+    function getNumberOfGames() public view onlyOwner returns (uint) {
+        return gameCount;
     }
 
-    // Funkcia, ktorá vráti jedinečný identifikátor lístka pre daný index
-    function getTicketId(uint index) public view onlyOwner returns (uint256) {
-        require(index < ticketPool.length, "Invalid ticket index.");
-        return ticketPool[index].ticketId;
+    // Function to get game information based on its index in the array
+    function getGame(uint gameId) public view onlyOwner returns (bool, uint, uint, bool) {
+        require(gameId > 0 && gameId <= gameCount, "Invalid game index");
+    
+        Game memory game = games[gameId];
+    
+        bool isLimitedTickets = game.isLimitedTickets;
+        uint maxTickets = game.maxTickets;
+        uint ticketPrice = game.ticketPrice;
+        bool active = game.active;
+    
+        return (isLimitedTickets, maxTickets, ticketPrice, active);
     }
 
-    function getAllTickets() public view onlyOwner returns (Ticket[] memory) {
-        return ticketPool;
+    // Function to get ticket information based on game and its index
+    function getTicket(uint gameId, uint ticketId) public view returns (uint, uint, address) {
+        require(gameId > 0 && gameId <= gameCount, "Invalid game index");
+        require(ticketId > 0 && ticketId <= games[gameId].ticketPool.length, "Invalid ticket index");
+    
+        Ticket memory ticket = games[gameId].ticketPool[ticketId - 1];
+    
+        uint ticketValue = ticket.value;
+        address ticketOwner = ticket.owner;
+    
+        return (ticketValue, ticketId, ticketOwner);
     }
 }
